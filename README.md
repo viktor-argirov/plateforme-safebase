@@ -1,9 +1,5 @@
 
----
-
-### Document du Projet : API de Sauvegarde et Restauration de Base de Données
-
-#### 1. **Objectif du Projet**
+## 1. Objectif du Projet
 L’objectif de ce projet est de développer une solution complète pour la gestion des sauvegardes et de la restauration de bases de données sous forme d’une API REST. Cette solution devra répondre aux besoins suivants :
 
 1. **Ajout de base de données** : Ajouter des connexions à des bases de données (MySQL, PostgreSQL).
@@ -16,7 +12,7 @@ L’objectif de ce projet est de développer une solution complète pour la gest
 
 ---
 
-#### 2. **Exigences Fonctionnelles**
+## 2. Exigences Fonctionnelles
 - **Ajout de base de données** :
   - L’API doit permettre aux utilisateurs de se connecter aux bases de données MySQL et PostgreSQL via des chaînes de connexion.
   
@@ -43,7 +39,7 @@ L’objectif de ce projet est de développer une solution complète pour la gest
 
 ---
 
-#### 3. **Architecture Technique**
+## 3. Architecture Technique
 - **Backend** :
   - **API** : Utilisation de frameworks comme Node.js, Python (Flask/Django), ou autres.
   - **Base de données** : MySQL, PostgreSQL.
@@ -58,7 +54,7 @@ L’objectif de ce projet est de développer une solution complète pour la gest
 
 ---
 
-#### 4. **Plan de Mise en Œuvre**
+## 4. Plan de Mise en Œuvre
 - **Phase 1 : Conception et Planification** :
   - Concevoir les routes et endpoints de l’API.
   - Planifier la structure de la base de données pour stocker l’historique des sauvegardes.
@@ -80,3 +76,4 @@ L’objectif de ce projet est de développer une solution complète pour la gest
   - Déployer sur un fournisseur cloud ou un environnement local.
 
 ---
+
