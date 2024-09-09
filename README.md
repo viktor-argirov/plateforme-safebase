@@ -1,5 +1,3 @@
-Voici le document détaillé en français basé sur votre description de projet :
-
 ---
 
 ### Document du Projet : API de Sauvegarde et Restauration de Base de Données
