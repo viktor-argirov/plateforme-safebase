@@ -14,7 +14,7 @@ async function routes(fastify, options) {
     const { name, email } = request.body;
     try {
       const [result] = await pool.execute(
-        'INSERT INTO users (name, email) VALUES (?, ?)',
+        'INSERT INTO users (name, email) VALUES (?, ?)', 
         [name, email]
       );
       reply.send({ success: true, userId: result.insertId });

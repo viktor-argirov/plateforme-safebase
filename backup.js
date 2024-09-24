@@ -6,112 +6,153 @@ const fs = require('fs');
 const zlib = require('zlib');
 const rp = require('request-promise');
 const moment = require('moment');
-const os = require('os');
-const util = require('util');
 const Promise = require('bluebird');
 
 const ignore = ['information_schema', 'performance_schema', 'mysql', 'accounts']; // Add other databases you want to ignore
 const pool = require('./routes/db');
-const s3Client = require('./config/s3');
 
-const monitor = process.argv[2] === '-nomonitor' ? false : true;
-const allDatabases = [];
+const slackWebhookUrl = 'https://hooks.slack.com/services/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'; // Replace with your webhook URL
+const backupPath = process.env.BACKUP_PATH || 'C:/Users/vikto/backups/'; // Ensure the correct path
 
-const formData = {
-  success: 1,
-  server: os.hostname(),
-  path: __filename,
-  message: ''
+const notifySlack = async (message) => {
+    const payload = {
+        text: message
+    };
+
+    try {
+        await rp({
+            method: 'POST',
+            uri: slackWebhookUrl,
+            body: payload,
+            json: true
+        });
+    } catch (error) {
+        console.error("Error sending Slack notification:", error.message);
+    }
 };
 
-const backupDate = moment().format('M-D-YY');
-const backupPath = process.env.BACKUP_PATH;
+const ensureBackupDirectoryExists = () => {
+    if (!fs.existsSync(backupPath)) {
+        fs.mkdirSync(backupPath, { recursive: true });
+        console.log(`Backup directory created: ${backupPath}`);
+    } else {
+        console.log(`Backup directory already exists: ${backupPath}`);
+    }
+};
 
 const backupDatabases = async () => {
-  try {
-    // Notify CronAlarm
-    if (monitor) {
-      try {
-        await rp(`http://api.cronalarm.com/v2/${process.env.CRONALARM_KEY}/start`);
-      } catch (err) {
-        console.warn("Warning: Failed to notify CronAlarm start", err.message);
-      }
+    try {
+        // Ensure the backup directory exists
+        ensureBackupDirectoryExists();
+
+        await notifySlack('Backup process started.');
+        console.log('Backup process started.');
+
+        // Get databases
+        const [dbs] = await pool.query('SHOW DATABASES');
+        const promises = dbs.map(async (db) => {
+            if (!ignore.includes(db.Database)) {
+                const gzip = zlib.createGzip();
+                const wstream = fs.createWriteStream(`${backupPath}${db.Database}.sql.gz`);
+                process.env.MYSQL_PWD = process.env.DB_PASS;
+
+                const mysqldump = spawn('mysqldump', [
+                    '-h', process.env.DB_HOST,
+                    '-u', process.env.DB_USER,
+                    db.Database
+                ]);
+
+                mysqldump.stderr.on('data', (data) => {
+                    console.error(`mysqldump error: ${data}`);
+                });
+
+                return new Promise((resolve, reject) => {
+                    mysqldump.stdout.pipe(gzip).pipe(wstream);
+                    wstream.on('finish', resolve);
+                    wstream.on('error', reject);
+                });
+            }
+        });
+
+        await Promise.all(promises);
+        await notifySlack('Backup process completed successfully.');
+        console.log('Backup process completed successfully.');
+    } catch (error) {
+        console.error(`Backup process failed: ${error.message}`);
+        await notifySlack(`Backup process failed: ${error.message}`);
     }
-
-    // Get databases
-    const [dbs] = await pool.query('SHOW DATABASES');
-    const promises = dbs.map(async (db) => {
-      if (!ignore.includes(db.Database)) {
-        allDatabases.push(db.Database);
-        const gzip = zlib.createGzip();
-        const wstream = fs.createWriteStream(`${backupPath}${db.Database}.sql.gz`);
-        process.env.MYSQL_PWD = process.env.DB_PASS; // Temporarily set the password
-
-        const mysqldump = spawn('mysqldump', [
-          '-h', process.env.DB_HOST,
-          '-u', process.env.DB_USER,
-          db.Database
-        ]);
-
-        // Error logging
-        mysqldump.stderr.on('data', (data) => {
-          console.error(`mysqldump error: ${data}`);
-        });
-
-        return new Promise((resolve, reject) => {
-          mysqldump.stdout.pipe(gzip).pipe(wstream);
-          wstream.on('finish', resolve);
-          wstream.on('error', reject);
-        });
-      }
-    });
-
-    await Promise.all(promises);
-
-    // Upload to S3
-    const uploadPromises = allDatabases.map(db => {
-      const params = {
-        localFile: `${backupPath}${db}.sql.gz`,
-        s3Params: {
-          Bucket: process.env.S3_BUCKET,
-          Key: `${backupDate}/${db}.sql.gz`,
-          ServerSideEncryption: 'AES256',
-          StorageClass: 'STANDARD_IA'
-        }
-      };
-
-      return new Promise((resolve, reject) => {
-        const uploader = s3Client.uploadFile(params);
-
-        // Listen for errors during upload
-        uploader.on('error', (err) => {
-          console.error(`S3 upload error for ${db}:`, err);
-          reject(err);
-        });
-
-        // Resolve when upload finishes
-        uploader.on('end', resolve);
-      });
-    });
-
-    await Promise.all(uploadPromises);
-  } catch (err) {
-    formData.success = 0;
-    formData.message = util.inspect(err);
-  } finally {
-    if (monitor) {
-      try {
-        await rp({
-          method: 'POST',
-          uri: `http://api.cronalarm.com/v2/${process.env.CRONALARM_KEY}/end`,
-          form: formData
-        });
-      } catch (err) {
-        console.warn("Warning: Failed to notify CronAlarm end", err.message);
-      }
-    }
-    process.exit();
-  }
 };
 
-backupDatabases();
+const restoreDatabases = async () => {
+    try {
+        ensureBackupDirectoryExists();
+
+        await notifySlack('Restore process started.');
+        console.log('Restore process started.');
+
+        // Get a list of all .sql.gz backup files in the backup directory
+        const files = fs.readdirSync(backupPath).filter(file => file.endsWith('.sql.gz'));
+
+        if (files.length === 0) {
+            throw new Error('No backup files found in the backup directory.');
+        }
+
+        for (const file of files) {
+            const dbName = file.replace('.sql.gz', '');
+            console.log(`Restoring database: ${dbName} from file: ${file}`);
+
+            const filePath = `${backupPath}${file}`;
+            if (!fs.existsSync(filePath)) {
+                console.error(`Backup file does not exist: ${filePath}`);
+                continue; // Skip this file and continue with the next
+            }
+
+            const gunzip = zlib.createGunzip();
+            const rstream = fs.createReadStream(filePath);
+            process.env.MYSQL_PWD = process.env.DB_PASS;
+
+            // Spawn the mysql process with stdin set to accept data
+            const mysqlRestore = spawn('mysql', [
+                '-h', process.env.DB_HOST,
+                '-u', process.env.DB_USER,
+                dbName
+            ], { stdio: ['pipe', process.stdout, process.stderr] });
+
+            // Pipe the streams
+            rstream
+                .pipe(gunzip)
+                .on('error', (err) => {
+                    console.error(`Gunzip error for ${file}: ${err.message}`);
+                })
+                .pipe(mysqlRestore.stdin) // Directly pipe to mysql's stdin
+                .on('error', (err) => {
+                    console.error(`Stream error for ${file}: ${err.message}`);
+                });
+
+            mysqlRestore.on('exit', (code) => {
+                if (code === 0) {
+                    console.log(`Successfully restored ${dbName} from ${file}`);
+                } else {
+                    console.error(`Failed to restore ${dbName} from ${file} with exit code ${code}`);
+                }
+            });
+        }
+
+        console.log('All restore operations initiated.');
+        await notifySlack('Restore process completed successfully.');
+    } catch (error) {
+        console.error(`Restore process failed: ${error.message}`);
+        await notifySlack(`Restore process failed: ${error.message}`);
+    } finally {
+        process.exit(); // Exit the process after restoration
+    }
+};
+
+
+// Run the backup and then restore
+const runBackupAndRestore = async () => {
+    await backupDatabases();
+    await restoreDatabases();
+};
+
+runBackupAndRestore();
