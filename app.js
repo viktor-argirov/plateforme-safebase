@@ -1,25 +1,48 @@
 require('dotenv').config();
-
+const path = require('path');
 const fastify = require('fastify')({ logger: true });
-const pool = require('./routes/db');
+const { backupDatabases, restoreDatabases } = require('./backup-restore');
+const { pool, routes } = require('./routes/db');
 
+// Register plugins
 fastify.register(require('@fastify/formbody'));
+fastify.register(require('@fastify/static'), {
+  root: path.join(__dirname),
+  prefix: '/'
+});
+fastify.register(routes);
 
-const indexRoutes = require('./routes/index');
-fastify.register(indexRoutes);
-
-const testDbConnection = async () => {
-  try {
-    const [rows] = await pool.query('SELECT 1');
-    console.log('Database connected successfully');
-  } catch (err) {
-    console.error('Failed to connect to the database:', err);
-    process.exit(1);
+// Backup API
+fastify.post('/api/backup', async (request, reply) => {
+  const { databases } = request.body;
+  if (!databases || databases.length === 0) {
+    return reply.status(400).send({ status: 'error', message: 'No databases selected for backup' });
   }
-};
+  
+  try {
+    await backupDatabases(databases);
+    reply.send({ status: 'success', message: 'Backup completed.' });
+  } catch (error) {
+    reply.status(500).send({ status: 'error', message: error.message });
+  }
+});
 
-testDbConnection();
+// Restore API
+fastify.post('/api/restore', async (request, reply) => {
+  const { databases } = request.body;
+  if (!databases || databases.length === 0) {
+    return reply.status(400).send({ status: 'error', message: 'No databases selected for restore' });
+  }
 
+  try {
+    await restoreDatabases(databases);
+    reply.send({ status: 'success', message: 'Restore completed.' });
+  } catch (error) {
+    reply.status(500).send({ status: 'error', message: error.message });
+  }
+});
+
+// Start server
 const start = async () => {
   try {
     await fastify.listen({ port: 3000 });
