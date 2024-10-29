@@ -4,6 +4,7 @@ const fastify = require('fastify')({ logger: true });
 const { backupDatabases, restoreDatabases } = require('./backup-restore');
 const { pool, routes } = require('./routes/db');
 
+
 // Register plugins
 fastify.register(require('@fastify/formbody'));
 fastify.register(require('@fastify/static'), {
@@ -45,12 +46,14 @@ fastify.post('/api/restore', async (request, reply) => {
 // Start server
 const start = async () => {
   try {
-    await fastify.listen({ port: 3000 });
+    await fastify.listen({ port: 3000, host: '0.0.0.0' });
     console.log('Server listening on port 3000');
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
   }
 };
+
+//fonction flechée 
 
 start();

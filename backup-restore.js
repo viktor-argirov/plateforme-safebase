@@ -33,7 +33,9 @@ const ensureBackupDirectoryExists = () => {
     console.log(`Backup directory already exists: ${backupPath}`);
   }
 };
-
+//--------------------------------------------------------------------
+// () => {} est une fonction flechée 
+//--------------------------------------------------------------------
 const backupDatabases = async (selectedDatabases = []) => {
   try {
     ensureBackupDirectoryExists();
