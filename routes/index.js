@@ -1,4 +1,4 @@
-const pool = require('./db');
+import { pool } from './db.js';
 
 async function routes(fastify, options) {
   fastify.get('/users', async (request, reply) => {
@@ -14,7 +14,7 @@ async function routes(fastify, options) {
     const { name, email } = request.body;
     try {
       const [result] = await pool.execute(
-        'INSERT INTO users (name, email) VALUES (?, ?)', 
+        'INSERT INTO users (name, email) VALUES (?, ?)',
         [name, email]
       );
       reply.send({ success: true, userId: result.insertId });
@@ -33,4 +33,4 @@ async function routes(fastify, options) {
   });
 }
 
-module.exports = routes;
+export default routes;

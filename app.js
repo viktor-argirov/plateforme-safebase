@@ -1,14 +1,19 @@
-require('dotenv').config();
-const path = require('path');
-const fastify = require('fastify')({ logger: true });
-const { backupDatabases, restoreDatabases } = require('./backup-restore');
-const { pool, routes } = require('./routes/db');
+// //fonction flechée 
+// start();
+import 'dotenv/config';
+import path from 'path';
+import fastifyModule from 'fastify';
+import { backupDatabases, restoreDatabases } from './backup-restore.js';
+import { pool, routes } from './routes/db.js';
+import formbody from '@fastify/formbody';
+import fastifyStatic from '@fastify/static';
 
+const fastify = fastifyModule({ logger: true });
 
 // Register plugins
-fastify.register(require('@fastify/formbody'));
-fastify.register(require('@fastify/static'), {
-  root: path.join(__dirname),
+fastify.register(formbody);
+fastify.register(fastifyStatic, {
+  root: path.resolve(),  // `path.resolve()` replaces `__dirname` for ES modules
   prefix: '/'
 });
 fastify.register(routes);
@@ -19,7 +24,7 @@ fastify.post('/api/backup', async (request, reply) => {
   if (!databases || databases.length === 0) {
     return reply.status(400).send({ status: 'error', message: 'No databases selected for backup' });
   }
-  
+
   try {
     await backupDatabases(databases);
     reply.send({ status: 'success', message: 'Backup completed.' });
@@ -53,7 +58,5 @@ const start = async () => {
     process.exit(1);
   }
 };
-
-//fonction flechée 
 
 start();

@@ -1,17 +1,17 @@
-// backup-restore.js
-const { spawn } = require('child_process');
-const fs = require('fs');
-const zlib = require('zlib');
-const moment = require('moment');
-const rp = require('request-promise');
-const { pool } = require('./routes/db');
-
+import { spawn } from 'child_process';
+import fs from 'fs';
+import zlib from 'zlib';
+import moment from 'moment';
+import rp from 'request-promise';
+import { pool } from './routes/db.js'; // Ensure this file uses .js extension
+import { existsSync } from 'fs';
+console.log('Backup-Restore Exists:', existsSync(new URL('../../backup-restore.js', import.meta.url)));
 
 const backupPath = process.env.BACKUP_PATH || 'C:/Users/vikto/backups/';
 const slackWebhookUrl = 'https://hooks.slack.com/services/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';
 const ignoredDatabases = ['information_schema', 'performance_schema', 'mysql', 'accounts'];
 
-const notifySlack = async (message) => {
+export const notifySlack = async (message) => {
   const payload = { text: message };
   try {
     await rp({
@@ -25,7 +25,7 @@ const notifySlack = async (message) => {
   }
 };
 
-const ensureBackupDirectoryExists = () => {
+export const ensureBackupDirectoryExists = () => {
   if (!fs.existsSync(backupPath)) {
     fs.mkdirSync(backupPath, { recursive: true });
     console.log(`Backup directory created: ${backupPath}`);
@@ -33,10 +33,8 @@ const ensureBackupDirectoryExists = () => {
     console.log(`Backup directory already exists: ${backupPath}`);
   }
 };
-//--------------------------------------------------------------------
-// () => {} est une fonction flechée 
-//--------------------------------------------------------------------
-const backupDatabases = async (selectedDatabases = []) => {
+
+export const backupDatabases = async (selectedDatabases = []) => {
   try {
     ensureBackupDirectoryExists();
     await notifySlack('Backup process started.');
@@ -73,7 +71,7 @@ const backupDatabases = async (selectedDatabases = []) => {
   }
 };
 
-const restoreDatabases = async (selectedDatabases = []) => {
+export const restoreDatabases = async (selectedDatabases = []) => {
   try {
     ensureBackupDirectoryExists();
     await notifySlack('Restore process started.');
@@ -111,5 +109,3 @@ const restoreDatabases = async (selectedDatabases = []) => {
     await notifySlack(`Restore process failed: ${error.message}`);
   }
 };
-
-module.exports = { backupDatabases, restoreDatabases };

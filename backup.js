@@ -1,12 +1,13 @@
-require('dotenv').config();
-const { backupDatabases, restoreDatabases } = require('./backup-restore');
-const selectedDatabases = [];  // Can be passed dynamically if needed
+import 'dotenv/config';
+import { backupDatabases, restoreDatabases } from './backup-restore.js';
+
+const selectedDatabases = []; 
 
 const runBackupAndRestore = async () => {
-  await backupDatabases(selectedDatabases);  // Back up all databases if empty
-  await restoreDatabases(selectedDatabases);  // Restore all databases if empty
+  await backupDatabases(selectedDatabases);  
+  await restoreDatabases(selectedDatabases);  
 };
 
-runBackupAndRestore();  // Trigger the backup and restore process
+runBackupAndRestore();  
 
-module.exports = { backupDatabases, restoreDatabases };
+export { backupDatabases, restoreDatabases };
