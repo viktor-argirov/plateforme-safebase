@@ -24,7 +24,7 @@ jobs:
 
       # 4. Run npm install in the frontend folder if applicable
       - name: npm install in frontend
-        working-directory: ./front_bdd_creator  # Adjust if your frontend directory is different
+        working-directory: ./plateforme-safebase  # Adjust if your frontend directory is different
         run: npm install
 
       # 5. Install Docker
