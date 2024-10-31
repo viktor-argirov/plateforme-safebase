@@ -22,29 +22,23 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # 4. Run npm install in the frontend folder if applicable
-      - name: npm install in frontend
-        working-directory: ./plateforme-safebase  # Adjust if your frontend directory is different
-        run: npm install
-
-      # 5. Install Docker
+      # 4. Install Docker
       - name: Install Docker
         run: |
           sudo apt-get update
           sudo apt-get install -y docker.io
 
-      # 6. Install Docker Compose
+      # 5. Install Docker Compose
       - name: Install Docker Compose
         run: |
           sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
 
-      # 7. Start Docker Compose
+      # 6. Start Docker Compose
       - name: Start Docker Compose
-        working-directory: ./
         run: docker-compose up -d
 
-      # 8. Run tests
+      # 7. Run tests
       - name: Run tests
         run: |
           sleep 10  # Wait for the services to be ready
