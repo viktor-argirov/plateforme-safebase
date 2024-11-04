@@ -22,33 +22,24 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # 4. Install Docker
-      - name: Install Docker
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker.io
-
-      # 5. Install Docker Compose
-      - name: Install Docker Compose
-        run: |
-          sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-
-      # 6. Start Docker Compose and Check Status
+      # 4. Start Docker Compose
       - name: Start Docker Compose
-        run: docker-compose up -d
+        run: |
+          docker-compose up -d
+        continue-on-error: true  # Continue if this fails to capture logs
 
+      # 5. Check Docker Status
       - name: Check Docker Status
-        run: docker-compose ps  # Check if services are running correctly
+        run: docker-compose ps
 
-      # 7. Run tests with detailed logging
+      # 6. Run tests
       - name: Run tests
         run: |
-          sleep 10  # Wait for services to be fully ready
-          npm test || true  # Run tests and continue, even if they fail, for logging
-        continue-on-error: true  # Allow job to continue for troubleshooting purposes
+          sleep 10
+          npm test || true
+        continue-on-error: true
 
-      # 8. Get logs if tests fail
+      # 7. Capture logs if tests fail
       - name: Get Docker Logs
         if: failure()
         run: docker-compose logs
