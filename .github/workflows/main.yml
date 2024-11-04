@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Check out the repository
+      # 1. Check out repository
       - name: Check out repository
         uses: actions/checkout@v3
 
@@ -17,33 +17,28 @@ jobs:
         with:
           node-version: '20'
 
-      # 3. Install dependencies
+      # 3. Install Node.js dependencies
       - name: Install dependencies
         run: npm install
 
-      # 4. Install Docker and Docker Compose (with debugging)
-      - name: Install Docker and Docker Compose
+      # 4. Install Docker Compose
+      - name: Install Docker Compose
         run: |
-          sudo apt-get update
-          sudo apt-get install -y docker.io
           sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
-          docker --version
-          docker-compose --version
 
       # 5. Start Docker Compose
       - name: Start Docker Compose
-        run: |
-          docker-compose up -d
-          docker-compose ps  # Check if services are running
+        run: docker-compose up -d
 
-      # 6. Run tests
+      # 6. Wait for services to initialize
+      - name: Wait for Docker services
+        run: sleep 10  # Adjust the sleep time if needed
+
+      # 7. Run tests
       - name: Run tests
-        run: |
-          sleep 10  # Wait for services to initialize
-          npm test
-        continue-on-error: true  # Allow tests to fail for debugging
+        run: npm test
 
-      # 7. Tear down Docker Compose
+      # 8. Stop Docker Compose
       - name: Stop Docker Compose
         run: docker-compose down
