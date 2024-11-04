@@ -21,16 +21,25 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # 4. Start Docker Compose
+      # 4. Install Docker Compose (if not present)
+      - name: Install Docker and Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+          sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose version  # Verify installation
+
+      # 5. Start Docker Compose
       - name: Start Docker Compose
         run: docker-compose up -d
 
-      # 5. Run tests
+      # 6. Run tests
       - name: Run tests
         run: |
           sleep 10  # Wait for services to initialize
           npm test
 
-      # 6. Tear down Docker Compose
+      # 7. Tear down Docker Compose
       - name: Stop Docker Compose
         run: docker-compose down
