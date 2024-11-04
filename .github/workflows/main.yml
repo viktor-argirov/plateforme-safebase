@@ -7,8 +7,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-      # 1. Check out repository
+      # 1. Check out the repository
       - name: Check out repository
         uses: actions/checkout@v3
 
@@ -24,22 +23,14 @@ jobs:
 
       # 4. Start Docker Compose
       - name: Start Docker Compose
-        run: |
-          docker-compose up -d
-        continue-on-error: true  # Continue if this fails to capture logs
+        run: docker-compose up -d
 
-      # 5. Check Docker Status
-      - name: Check Docker Status
-        run: docker-compose ps
-
-      # 6. Run tests
+      # 5. Run tests
       - name: Run tests
         run: |
-          sleep 10
-          npm test || true
-        continue-on-error: true
+          sleep 10  # Wait for services to initialize
+          npm test
 
-      # 7. Capture logs if tests fail
-      - name: Get Docker Logs
-        if: failure()
-        run: docker-compose logs
+      # 6. Tear down Docker Compose
+      - name: Stop Docker Compose
+        run: docker-compose down
